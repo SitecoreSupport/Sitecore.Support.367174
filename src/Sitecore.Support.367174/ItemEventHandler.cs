@@ -120,6 +120,7 @@
         /// items archiving properties were not changed.</param>
         private void UpdateArchiving(Item item, bool force)
         {
+            Assert.ArgumentNotNull(item, "item");
             DateField dateField = item.Fields[FieldIDs.ArchiveDate];
             if (force || dateField.InnerField.IsModified)
             {
