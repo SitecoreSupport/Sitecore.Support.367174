@@ -3,15 +3,18 @@ using Sitecore.Data.Items;
 using Sitecore.Diagnostics;
 using Sitecore.Events;
 using Sitecore.SecurityModel;
+using Sitecore.Tasks;
 using Sitecore.Xml;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
-namespace Sitecore.Tasks
+namespace Sitecore.Support.Tasks
 {
     /// <summary>
     /// Represents a ItemEvent handler.
     /// </summary>
-    public class ItemEventHandler
+    public class ItemEventHandler : Sitecore.Tasks.ItemEventHandler
     {
         /// <summary>
         /// Called when an item has been copied.
@@ -117,46 +120,20 @@ namespace Sitecore.Tasks
         /// items archiving properties were not changed.</param>
         private void UpdateArchiving(Item item, bool force)
         {
-            Assert.ArgumentNotNull(item, "item");
             DateField dateField = item.Fields[FieldIDs.ArchiveDate];
             if (force || dateField.InnerField.IsModified)
             {
                 DateTime dateTime = dateField.DateTime;
-                ArchiveItem archiveItem = new ArchiveItem(dateTime)
+                if (dateTime > DateTime.MinValue && this.databases.Contains(item.Database.Name, new ItemEventHandler.cmp()))
                 {
-                    ItemID = item.ID,
-                    By = Context.User.Name,
-                    DatabaseName = item.Database.Name,
-                    ArchiveName = "archive"
-                };
-                if (dateTime > DateTime.MinValue)
-                {
-                    archiveItem.Update();
-                }
-                else
-                {
-                    archiveItem.Remove();
-                }
-            }
-            DateField dateField2 = item.Fields[FieldIDs.ArchiveVersionDate];
-            if (force || dateField2.InnerField.IsModified)
-            {
-                DateTime dateTime2 = dateField2.DateTime;
-                ArchiveVersion archiveVersion = new ArchiveVersion(dateTime2)
-                {
-                    ItemID = item.ID,
-                    DatabaseName = item.Database.Name,
-                    By = Context.User.Name,
-                    Language = item.Language.Name,
-                    Version = item.Version.Number,
-                    ArchiveName = "archive"
-                };
-                if (dateTime2 > DateTime.MinValue)
-                {
-                    archiveVersion.Update();
+                    ArchiveTask archiveTask = new ArchiveTask(dateTime);
+                    archiveTask.ItemID = item.ID;
+                    archiveTask.DatabaseName = item.Database.Name;
+                    ArchiveTask archiveTask2 = archiveTask;
+                    Globals.TaskDatabase.UpdateItemTask(archiveTask2, true);
                     return;
                 }
-                archiveVersion.Remove();
+                Globals.TaskDatabase.RemoveItemTasks(item, typeof(ArchiveTask));
             }
         }
 
@@ -178,16 +155,37 @@ namespace Sitecore.Tasks
             if (force || dateField.InnerField.IsModified || field.IsModified || field2.IsModified)
             {
                 DateTime dateTime = dateField.DateTime;
-                if (dateTime > DateTime.MinValue)
+                if (dateTime > DateTime.MinValue && this.databases.Contains(item.Database.Name, new ItemEventHandler.cmp()))
                 {
                     EmailReminderTask emailReminderTask = new EmailReminderTask(dateTime);
                     emailReminderTask.ItemID = item.ID;
                     emailReminderTask.DatabaseName = item.Database.Name;
                     emailReminderTask.Parameters = this.GetReminderParameters(field, field2);
-                    Globals.TaskDatabase.UpdateItemTask(emailReminderTask, true);
+                    EmailReminderTask emailReminderTask2 = emailReminderTask;
+                    Globals.TaskDatabase.UpdateItemTask(emailReminderTask2, true);
                     return;
                 }
                 Globals.TaskDatabase.RemoveItemTasks(item, typeof(EmailReminderTask));
+            }
+        }
+        private readonly List<string> databases = new List<string>();
+        public List<string> Databases
+        {
+            get
+            {
+                return this.databases;
+            }
+        }
+        private class cmp : IEqualityComparer<string>
+        {
+            public bool Equals(string str1, string str2)
+            {
+                return str1.Equals(str2, StringComparison.InvariantCultureIgnoreCase);
+            }
+
+            public int GetHashCode(string str)
+            {
+                return str.GetHashCode();
             }
         }
     }
