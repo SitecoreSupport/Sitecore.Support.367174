@@ -1,16 +1,16 @@
-﻿using Sitecore.Data.Fields;
-using Sitecore.Data.Items;
-using Sitecore.Diagnostics;
-using Sitecore.Events;
-using Sitecore.SecurityModel;
-using Sitecore.Tasks;
-using Sitecore.Xml;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace Sitecore.Support.Tasks
+﻿namespace Sitecore.Support.Tasks
 {
+    using Sitecore.Data.Fields;
+    using Sitecore.Data.Items;
+    using Sitecore.Diagnostics;
+    using Sitecore.Events;
+    using Sitecore.SecurityModel;
+    using Sitecore.Tasks;
+    using Sitecore.Xml;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+
     /// <summary>
     /// Represents a ItemEvent handler.
     /// </summary>
